@@ -24,8 +24,8 @@ var blockedPathKeywords = []string{
 	"/private",
 }
 
-func ApplyRules(info RequestInfo) Result {
-	// Check for blocked host keywords
+// ApplyHTTPRules checks the incoming request against defined rules and returns a Result struct
+func ApplyHTTPRules(info RequestInfo) Result {
 	for _, keyword := range blockedHostKeywords {
 		if strings.Contains(info.Host, keyword) {
 			return Result{
@@ -45,5 +45,19 @@ func ApplyRules(info RequestInfo) Result {
 		}
 	}
 
-	return Result{Allow: true, Reason: "Request Allowed"}
+	return Result{Allow: true, Reason: "Request Allowed from: " + info.Host}
+}
+
+// ApplyHTTPSRules can have different logic than HTTP rules, but for now it checks the same host keywords
+func ApplyHTTPSRules(info RequestInfo) Result {
+	for _, keyword := range blockedHostKeywords {
+		if strings.Contains(info.Host, keyword) {
+			return Result{
+				Allow:  false,
+				Reason: "Blocked host keyword: " + keyword,
+			}
+		}
+	}
+
+	return Result{Allow: true, Reason: "HTTPS Request Allowed from: " + info.Host}
 }

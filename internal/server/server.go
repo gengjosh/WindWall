@@ -8,33 +8,49 @@ import (
 )
 
 func Start() error {
-
 	log.Println("Starting Server...")
+	return http.ListenAndServe("127.0.0.1:8080", http.HandlerFunc(proxyHandler))
+}
 
-	// HandleFunc to take on logic for incoming requests and outgoing responses to the client
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Windwall is running! \n"))
-		log.Printf("Received request: Method=%s Path=%s Host=%s", r.Method, r.URL.Path, r.Host)
+func proxyHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("TOP HANDLER HIT: Method=%q Host=%q URL=%q Path=%q",
+		r.Method, r.Host, r.URL.String(), r.URL.Path)
 
-		// Create RequestInfo struct to pass to rules engine
-		info := rules.RequestInfo{
-			Host: r.Host,
-			Path: r.URL.Path,
-		}
+	// Create RequestInfo struct to pass to rules engine
+	info := rules.RequestInfo{
+		Host: r.Host,
+		Path: r.URL.Path,
+	}
 
-		// Apply rules to incoming request
-		result := rules.ApplyRules(info)
+	if r.Method == http.MethodConnect {
+		// Handle HTTPS CONNECT requests
+		log.Printf("CONNECT BRANCH HIT: Host=%s", r.Host)
+
+		result := rules.ApplyHTTPRules(info)
+
 		if !result.Allow {
-			log.Printf("Request blocked: %s", result.Reason)
+			log.Printf("HTTPS request blocked: %s", result.Reason)
 			http.Error(w, "Forbidden: "+result.Reason, http.StatusForbidden)
 			return
 		}
 
-		log.Println("Request allowed")
-		w.Write([]byte("Request Allowed from:" + r.Host))
+		log.Println("Request allowed for HTTPS")
+		w.Write([]byte("HTTPS Request Allowed from:" + r.Host))
+		return
+	}
 
-	})
+	// Handle regular HTTP requests
+	log.Printf("HTTP BRANCH HIT: Path=%s", r.URL.Path)
 
-	// Start server on port 8080
-	return http.ListenAndServe("127.0.0.1:8080", nil)
+	result := rules.ApplyHTTPRules(info)
+
+	if !result.Allow {
+		log.Printf("HTTP request blocked: %s", result.Reason)
+		http.Error(w, "Forbidden: "+result.Reason, http.StatusForbidden)
+		return
+	}
+
+	log.Println("Request allowed for HTTP")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("HTTP request received"))
 }
