@@ -44,3 +44,30 @@ func handleHTTPSConnect(w http.ResponseWriter, r *http.Request) {
 	go io.Copy(targetConn, clientConn)
 	io.Copy(clientConn, targetConn)
 }
+
+func handleHTTPForward(w http.ResponseWriter, r *http.Request) {
+	outReq, err := http.NewRequest(r.Method, r.URL.String(), r.Body)
+	if err != nil {
+		http.Error(w, "Failed to create outbound request", http.StatusInternalServerError)
+		return
+	}
+
+	outReq.Header = r.Header.Clone()
+
+	client := &http.Client{}
+	resp, err := client.Do(outReq)
+	if err != nil {
+		http.Error(w, "Failed to forward request", http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	for key, values := range resp.Header {
+		for _, value := range values {
+			w.Header().Add(key, value)
+		}
+	}
+
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
+}

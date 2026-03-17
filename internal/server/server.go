@@ -33,8 +33,8 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Println("Request allowed for HTTPS")
 		handleHTTPSConnect(w, r)
+		log.Println("Request allowed for HTTPS")
 		return
 	}
 
@@ -49,7 +49,6 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	handleHTTPForward(w, r)
 	log.Println("Request allowed for HTTP")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("HTTP request received"))
 }
