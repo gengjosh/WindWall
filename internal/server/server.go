@@ -17,14 +17,12 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		r.Method, r.Host, r.URL.String(), r.URL.Path)
 
 	// Create RequestInfo struct to pass to rules engine
-	info := rules.RequestInfo{
-		Host: r.Host,
-		Path: r.URL.Path,
-	}
+	info := rules.BuildRequestInfo(r.Host, r.URL.Path, r.Referer(), r.Header.Get("Origin"), r.Method, false, false)
 
 	if r.Method == http.MethodConnect {
 		// Handle HTTPS CONNECT requests
 		log.Printf("CONNECT BRANCH HIT: Host=%s", r.Host)
+		info.IsHTTPS = true
 
 		result := rules.ApplyHTTPRules(info)
 

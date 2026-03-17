@@ -1,10 +1,19 @@
 package rules
 
-import "strings"
+import (
+	"net"
+	"net/url"
+	"strings"
+)
 
 type RequestInfo struct {
-	Host string
-	Path string
+	Host         string
+	Path         string
+	Referer      string
+	Origin       string
+	Method       string
+	IsHTTPS      bool
+	IsThirdParty bool
 }
 
 type Result struct {
@@ -60,4 +69,89 @@ func ApplyHTTPSRules(info RequestInfo) Result {
 	}
 
 	return Result{Allow: true, Reason: "HTTPS Request Allowed from: " + info.Host}
+}
+
+// Function to build RequestInfo struct from HTTP request data
+func BuildRequestInfo(host string, path string, referer string, origin string, method string, ishttps bool, isthirdparty bool) RequestInfo {
+
+	return RequestInfo{
+		Host:         host,
+		Path:         path,
+		Referer:      referer,
+		Origin:       origin,
+		Method:       method,
+		IsHTTPS:      ishttps,
+		IsThirdParty: isthirdparty,
+	}
+}
+
+// Function to determine if a request is third-party based on host, referer, and origin
+func DetermineThirdParty(host, referer, origin string) bool {
+	// Extract domains from host, referer, and origin
+	hostDomain := extractDomain(host)
+
+	if origin != "" {
+		originDomain := extractDomain(origin)
+		return hostDomain != originDomain
+	}
+
+	if referer != "" {
+		refererDomain := extractDomain(referer)
+		return hostDomain != refererDomain
+	}
+
+	return false
+}
+
+// Function to check if a request should be blocked based on various criteria
+func ShouldBlock(info RequestInfo) (bool, string) {
+	return false, ""
+}
+
+// Function to check if the host matches any blocked keywords
+func hostMatchesBlockedKeyword(host string) (bool, string) {
+	return false, ""
+}
+
+// Function to check if the path matches any blocked keywords
+func pathMatchesBlockedKeyword(path string) (bool, string) {
+	return false, ""
+}
+
+// Helper function to extract the hostname from a URL
+func extractHostname(input string) string {
+	input = strings.ToLower(strings.TrimSpace(input))
+	if input == "" {
+		return ""
+	}
+
+	if strings.HasPrefix(input, "http://") || strings.HasPrefix(input, "https://") {
+		parsedURL, err := url.Parse(input)
+		if err != nil {
+			return ""
+		}
+		input = parsedURL.Host
+	}
+
+	host, _, err := net.SplitHostPort(input)
+	if err == nil {
+		return host
+	}
+
+	return input
+}
+
+// Helper function to extract the domain from a URL
+func extractDomain(host string) string {
+	host = extractHostname(host)
+	if host == "" {
+		return ""
+	}
+
+	parts := strings.Split(host, ".")
+	if len(parts) < 2 {
+		return host
+	}
+
+	return parts[len(parts)-2] + "." + parts[len(parts)-1]
 }
