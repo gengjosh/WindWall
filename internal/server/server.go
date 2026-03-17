@@ -34,7 +34,8 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Println("Request allowed for HTTPS")
-		w.Write([]byte("HTTPS Request Allowed from:" + r.Host)) // Temporary holder response for CONNECT requests soon to create tunnel
+		handleHTTPSConnect(w, r)
+		return
 	}
 
 	// Handle regular HTTP requests
