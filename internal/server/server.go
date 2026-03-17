@@ -18,13 +18,14 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create RequestInfo struct to pass to rules engine
 	info := rules.BuildRequestInfo(r.Host, r.URL.Path, r.Referer(), r.Header.Get("Origin"), r.Method, false, false)
+	info.IsThirdParty = rules.DetermineThirdParty(info.Host, info.Referer, info.Origin)
 
 	if r.Method == http.MethodConnect {
 		// Handle HTTPS CONNECT requests
 		log.Printf("CONNECT BRANCH HIT: Host=%s", r.Host)
 		info.IsHTTPS = true
 
-		result := rules.ApplyHTTPRules(info)
+		result := rules.ShouldBlock(info)
 
 		if !result.Allow {
 			log.Printf("HTTPS request blocked: %s", result.Reason)
@@ -33,14 +34,13 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		log.Println("Request allowed for HTTPS")
-		w.Write([]byte("HTTPS Request Allowed from:" + r.Host))
-		return
+		w.Write([]byte("HTTPS Request Allowed from:" + r.Host)) // Temporary holder response for CONNECT requests soon to create tunnel
 	}
 
 	// Handle regular HTTP requests
 	log.Printf("HTTP BRANCH HIT: Path=%s", r.URL.Path)
 
-	result := rules.ApplyHTTPRules(info)
+	result := rules.ShouldBlock(info)
 
 	if !result.Allow {
 		log.Printf("HTTP request blocked: %s", result.Reason)

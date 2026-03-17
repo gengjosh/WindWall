@@ -45,3 +45,33 @@ func TestDetermineThirdParty_ThirdParty(t *testing.T) {
 		t.Errorf("DetermineThirdParty() = %v, want %v", got, want)
 	}
 }
+
+func TestShouldBlock_FirstParty(t *testing.T) {
+	info := RequestInfo{
+		Host:         "cdn.mangasite.com",
+		IsThirdParty: false,
+	}
+
+	result := ShouldBlock(info)
+
+	if result.Allow != true {
+		t.Errorf("ShouldBlock() Allow = %v, want %v", result.Allow, true)
+	}
+}
+
+func TestShouldBlock_ThirdParty(t *testing.T) {
+	info := RequestInfo{
+		Host:         "ads.evilnetwork.com",
+		IsThirdParty: true,
+	}
+
+	result := ShouldBlock(info)
+
+	if result.Allow != false {
+		t.Errorf("ShouldBlock() Allow = %v, want %v", result.Allow, false)
+	}
+
+	if result.Reason == "" {
+		t.Errorf("ShouldBlock() Reason is empty, want a reason")
+	}
+}

@@ -21,54 +21,14 @@ type Result struct {
 	Reason string
 }
 
-var blockedHostKeywords = []string{
-	"badhost",
-	"malicious",
-	"blocked",
-}
-
-var blockedPathKeywords = []string{
-	"/admin",
-	"/secret",
-	"/private",
-}
-
 // ApplyHTTPRules checks the incoming request against defined rules and returns a Result struct
 func ApplyHTTPRules(info RequestInfo) Result {
-	for _, keyword := range blockedHostKeywords {
-		if strings.Contains(info.Host, keyword) {
-			return Result{
-				Allow:  false,
-				Reason: "Blocked host keyword: " + keyword,
-			}
-		}
-	}
-
-	// Check for blocked path keywords
-	for _, keyword := range blockedPathKeywords {
-		if strings.Contains(info.Path, keyword) {
-			return Result{
-				Allow:  false,
-				Reason: "Blocked path keyword: " + keyword,
-			}
-		}
-	}
-
-	return Result{Allow: true, Reason: "Request Allowed from: " + info.Host}
+	return Result{}
 }
 
 // ApplyHTTPSRules can have different logic than HTTP rules, but for now it checks the same host keywords
 func ApplyHTTPSRules(info RequestInfo) Result {
-	for _, keyword := range blockedHostKeywords {
-		if strings.Contains(info.Host, keyword) {
-			return Result{
-				Allow:  false,
-				Reason: "Blocked host keyword: " + keyword,
-			}
-		}
-	}
-
-	return Result{Allow: true, Reason: "HTTPS Request Allowed from: " + info.Host}
+	return Result{}
 }
 
 // Function to build RequestInfo struct from HTTP request data
@@ -104,19 +64,23 @@ func DetermineThirdParty(host, referer, origin string) bool {
 }
 
 // Function to check if a request should be blocked based on various criteria
-func ShouldBlock(info RequestInfo) (bool, string) {
-	return false, ""
+func ShouldBlock(info RequestInfo) Result {
+	if info.IsThirdParty {
+		return Result{Allow: false, Reason: "Blocked: Third-party request"}
+	}
+
+	return Result{Allow: true, Reason: "Allowed: No blocking criteria met"}
 }
 
-// Function to check if the host matches any blocked keywords
-func hostMatchesBlockedKeyword(host string) (bool, string) {
-	return false, ""
-}
+// // Function to check if the host matches any blocked keywords
+// func hostMatchesBlockedKeyword(host string) (bool, string) {
+// 	return false, ""
+// }
 
-// Function to check if the path matches any blocked keywords
-func pathMatchesBlockedKeyword(path string) (bool, string) {
-	return false, ""
-}
+// // Function to check if the path matches any blocked keywords
+// func pathMatchesBlockedKeyword(path string) (bool, string) {
+// 	return false, ""
+// }
 
 // Helper function to extract the hostname from a URL
 func extractHostname(input string) string {
